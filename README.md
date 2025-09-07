@@ -7,6 +7,7 @@ chmod +x start-gui.sh
 
 ```
 
+The command below will be used to run the bash file
 
 ```bash
 ./start-gui.sh

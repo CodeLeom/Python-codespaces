@@ -1,6 +1,11 @@
-# Readme
+# Run Python GUI inside GitHub codespaces
 
-clone this repo and open in codespace.
+> This repository contains setup scripts and examples that make it possible to run Python GUI applications inside GitHub Codespaces.
+> It uses `Xvfb` to create a virtual display and `noVNC` to stream the desktop directly to your browser.
+> This is especially useful for running and testing libraries like Pygame, Tkinter, or other Python GUI frameworks in a headless environment like Codespaces.
+
+
+Clone this repo and open in codespace.
 
 Once you open your codespace, run the command below to give you the access to execute the bash file
 

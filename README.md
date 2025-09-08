@@ -1,5 +1,7 @@
 # Readme
 
+clone this repo and open in codespace.
+
 Once you open your codespace, run the command below to give you the access to execute the bash file
 
 ```bash

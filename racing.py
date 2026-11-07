@@ -13,7 +13,6 @@ MAX_SPEED = 360
 ACCELERATION = 250
 BRAKE_POWER = 360
 TURN_SPEED = 2.8
-CRASH_SPEED = 55
 
 BG = (35, 115, 55)
 ROAD = (65, 67, 74)
@@ -111,11 +110,6 @@ def nearest_waypoint(point, points):
     return min(range(len(points)), key=distances.__getitem__)
 
 
-def passed_start_line(car, track, previous_waypoint, completed_waypoints):
-    start = pygame.Vector2(track["points"][0])
-    return completed_waypoints >= len(track["points"]) - 2 and car.position.distance_to(start) < 48
-
-
 def draw_track(surface, track):
     points = [pygame.Vector2(point) for point in track["points"]]
     closed = points + [points[0]]
@@ -141,7 +135,7 @@ def new_race(track):
     start = pygame.Vector2(track["points"][0])
     next_point = pygame.Vector2(track["points"][1])
     heading = math.atan2(next_point.y - start.y, next_point.x - start.x)
-    return Car(start, heading), time.perf_counter(), 0, False
+    return Car(start, heading), time.perf_counter(), 0, 0, False
 
 
 def main():
@@ -154,8 +148,9 @@ def main():
 
     track_index = 0
     track = TRACKS[track_index]
-    car, start_time, last_waypoint, finished = new_race(track)
+    car, start_time, last_waypoint, completed_waypoints, finished = new_race(track)
     best_times = [None] * len(TRACKS)
+    elapsed = 0.0
 
     while True:
         dt = min(clock.tick(FPS) / 1000, 0.05)
@@ -170,29 +165,33 @@ def main():
                 if event.key in (pygame.K_1, pygame.K_2, pygame.K_3):
                     track_index = event.key - pygame.K_1
                     track = TRACKS[track_index]
-                    car, start_time, last_waypoint, finished = new_race(track)
+                    car, start_time, last_waypoint, completed_waypoints, finished = new_race(track)
+                    elapsed = 0.0
                 if event.key == pygame.K_r:
-                    car, start_time, last_waypoint, finished = new_race(track)
+                    car, start_time, last_waypoint, completed_waypoints, finished = new_race(track)
+                    elapsed = 0.0
 
         if not finished:
             car.update(dt, track)
             nearest = nearest_waypoint(car.position, track["points"])
-            if (nearest - last_waypoint) % len(track["points"]) == 1:
+            expected = (last_waypoint + 1) % len(track["points"])
+            if nearest == expected:
                 last_waypoint = nearest
-            if passed_start_line(car, track, last_waypoint, last_waypoint):
+                completed_waypoints += 1
+
+            elapsed = time.perf_counter() - start_time
+            if completed_waypoints >= len(track["points"]):
                 finished = True
-                elapsed = time.perf_counter() - start_time
                 if best_times[track_index] is None or elapsed < best_times[track_index]:
                     best_times[track_index] = elapsed
 
-        elapsed = (time.perf_counter() - start_time) if not finished else elapsed
+        current_best = best_times[track_index]
+        best_text = f"Best: {current_best:.2f}s" if current_best is not None else "Best: --"
         screen.fill(BG)
         draw_track(screen, track)
         car.draw(screen)
 
         pygame.draw.rect(screen, BLACK, (0, 0, WIDTH, 72))
-        current_best = best_times[track_index]
-        best_text = f"Best: {current_best:.2f}s" if current_best is not None else "Best: --"
         screen.blit(font.render(f"Track {track_index + 1}: {track['name']}", True, WHITE), (25, 16))
         screen.blit(font.render(f"Time: {elapsed:.2f}s   {best_text}", True, WHITE), (25, 43))
         screen.blit(font.render("WASD/arrows drive | 1-3 tracks | R restart | Esc quit", True, WHITE), (620, 25))

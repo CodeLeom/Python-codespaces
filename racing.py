@@ -1,6 +1,5 @@
 import json
 import math
-import os
 import sys
 import time
 
@@ -26,9 +25,18 @@ YELLOW = (245, 210, 45)
 BLACK = (18, 18, 20)
 
 TRACKS = [
-    {"name": "Oval Run", "points": [(180, 350), (260, 145), (520, 90), (820, 145), (920, 350), (820, 555), (520, 610), (260, 555)]},
-    {"name": "Zigzag Circuit", "points": [(180, 520), (180, 180), (400, 100), (700, 180), (920, 100), (920, 520), (700, 600), (400, 520)]},
-    {"name": "River Loop", "points": [(160, 220), (330, 100), (610, 120), (920, 250), (850, 500), (610, 600), (300, 540), (150, 390)]},
+    {
+        "name": "Oval Run",
+        "points": [(170, 350), (220, 180), (430, 90), (700, 90), (880, 180), (930, 350), (880, 520), (700, 610), (430, 610), (220, 520)],
+    },
+    {
+        "name": "S-Curve",
+        "points": [(150, 560), (220, 430), (390, 350), (560, 270), (730, 190), (930, 130), (930, 250), (760, 330), (590, 410), (420, 490), (250, 570)],
+    },
+    {
+        "name": "Hairpin Hill",
+        "points": [(170, 150), (430, 150), (760, 150), (930, 260), (930, 470), (760, 560), (430, 560), (210, 470), (210, 350), (430, 350), (700, 350), (760, 300), (700, 250), (430, 250), (170, 250)],
+    },
 ]
 
 
@@ -58,14 +66,10 @@ class Car:
 
     def update(self, dt, track):
         keys = pygame.key.get_pressed()
-        throttle = keys[pygame.K_w] or keys[pygame.K_UP]
-        brake = keys[pygame.K_s] or keys[pygame.K_DOWN]
         forward = pygame.Vector2(math.cos(self.heading), math.sin(self.heading))
-        right = forward.rotate(90)
-
-        if throttle:
+        if keys[pygame.K_w] or keys[pygame.K_UP]:
             self.velocity += forward * ACCELERATION * dt
-        if brake:
+        if keys[pygame.K_s] or keys[pygame.K_DOWN]:
             self.velocity -= forward * BRAKE_POWER * dt
 
         forward_speed = self.velocity.dot(forward)
@@ -73,18 +77,16 @@ class Car:
         if abs(forward_speed) > 5 and steering:
             self.heading += steering * TURN_SPEED * dt * min(abs(forward_speed) / 150, 1.7)
 
-        # Keep some sideways momentum for a small, controllable drift.
         forward = pygame.Vector2(math.cos(self.heading), math.sin(self.heading))
         right = forward.rotate(90)
         longitudinal = forward * self.velocity.dot(forward)
         lateral = right * self.velocity.dot(right) * 0.94
-        self.velocity = (longitudinal + lateral) * (0.996 if throttle else 0.985)
+        self.velocity = (longitudinal + lateral) * (0.996 if keys[pygame.K_w] or keys[pygame.K_UP] else 0.985)
         if self.velocity.length() > MAX_SPEED:
             self.velocity.scale_to_length(MAX_SPEED)
-        self.position += self.velocity * dt
 
-        distance = distance_to_loop(self.position, track["points"])
-        if distance > ROAD_WIDTH / 2 - 8:
+        self.position += self.velocity * dt
+        if distance_to_loop(self.position, track["points"]) > ROAD_WIDTH / 2 - 8:
             self.velocity *= 0.18
             self.crash_timer = 0.65
             self.position -= self.velocity * dt * 2
@@ -115,13 +117,26 @@ def nearest_waypoint(point, points):
     return min(range(len(points)), key=distances.__getitem__)
 
 
+def crossed_start_line(previous, current, track):
+    start = pygame.Vector2(track["points"][0])
+    next_point = pygame.Vector2(track["points"][1])
+    line_direction = (next_point - start).normalize()
+    line_normal = line_direction.rotate(90)
+    previous_side = (previous - start).dot(line_normal)
+    current_side = (current - start).dot(line_normal)
+    along = (current - start).dot(line_direction)
+    return previous_side < 0 <= current_side and -ROAD_WIDTH / 2 <= along <= ROAD_WIDTH / 2
+
+
 def draw_track(surface, track):
     points = [pygame.Vector2(point) for point in track["points"]]
     closed = points + [points[0]]
+    # Circles at every join remove gaps at sharp S-curve and hairpin corners.
     pygame.draw.lines(surface, ROAD_EDGE, True, closed, ROAD_WIDTH + 12)
     pygame.draw.lines(surface, ROAD, True, closed, ROAD_WIDTH)
-    for index, start in enumerate(points):
-        pygame.draw.line(surface, (215, 215, 215), start, points[(index + 1) % len(points)], 2)
+    for point in points:
+        pygame.draw.circle(surface, ROAD_EDGE, point, (ROAD_WIDTH + 12) // 2)
+        pygame.draw.circle(surface, ROAD, point, ROAD_WIDTH // 2)
 
     start = points[0]
     direction = (points[1] - start).normalize()
@@ -136,7 +151,7 @@ def new_race(track):
     start = pygame.Vector2(track["points"][0])
     next_point = pygame.Vector2(track["points"][1])
     heading = math.atan2(next_point.y - start.y, next_point.x - start.x)
-    return Car(start, heading), 0.0, 0, 0, False
+    return Car(start, heading), 0.0, start.copy(), 0, False
 
 
 def centered_text(surface, font, message, y, color=WHITE):
@@ -152,8 +167,8 @@ def draw_menu(screen, title_font, font, selected, records):
         color = YELLOW if index == selected else WHITE
         record = f"Best: {records[index]:.2f}s" if records[index] is not None else "Best: --"
         centered_text(screen, font, f"{index + 1}. {track['name']}   {record}", 255 + index * 65, color)
-    centered_text(screen, font, "Up/Down or 1-3 select | Enter start | Esc quit", 520, WHITE)
-    centered_text(screen, font, "WASD/arrows drive | Keep sideways momentum to drift", 555, WHITE)
+    centered_text(screen, font, "Up/Down or 1-3 select | Enter start | Esc quit", 520)
+    centered_text(screen, font, "WASD/arrows drive | Stay on the solid road", 555)
 
 
 def main():
@@ -171,6 +186,7 @@ def main():
     car = None
     start_time = 0.0
     countdown = 0.0
+    previous_position = pygame.Vector2()
     last_waypoint = 0
     completed_waypoints = 0
     elapsed = 0.0
@@ -197,12 +213,14 @@ def main():
                     selected = event.key - pygame.K_1
                 elif event.key == pygame.K_RETURN:
                     track = TRACKS[selected]
-                    car, start_time, last_waypoint, completed_waypoints, finished = new_race(track)
+                    car, start_time, previous_position, last_waypoint, finished = new_race(track)
+                    completed_waypoints = 0
                     countdown = 3.0
                     elapsed = 0.0
                     mode = "countdown"
             elif event.key == pygame.K_r and mode == "finished":
-                car, start_time, last_waypoint, completed_waypoints, finished = new_race(track)
+                car, start_time, previous_position, last_waypoint, finished = new_race(track)
+                completed_waypoints = 0
                 countdown = 3.0
                 elapsed = 0.0
                 mode = "countdown"
@@ -211,15 +229,17 @@ def main():
             countdown -= dt
             if countdown <= 0:
                 start_time = time.perf_counter()
+                previous_position = car.position.copy()
                 mode = "racing"
         elif mode == "racing":
+            previous_position = car.position.copy()
             car.update(dt, track)
             nearest = nearest_waypoint(car.position, track["points"])
             if nearest == (last_waypoint + 1) % len(track["points"]):
                 last_waypoint = nearest
                 completed_waypoints += 1
             elapsed = time.perf_counter() - start_time
-            if completed_waypoints >= len(track["points"]):
+            if completed_waypoints >= len(track["points"]) and crossed_start_line(previous_position, car.position, track):
                 mode = "finished"
                 if records[selected] is None or elapsed < records[selected]:
                     records[selected] = elapsed
@@ -232,13 +252,13 @@ def main():
             draw_track(screen, track)
             car.draw(screen)
             pygame.draw.rect(screen, BLACK, (0, 0, WIDTH, 72))
+            best = f"{records[selected]:.2f}s" if records[selected] is not None else "--"
             screen.blit(font.render(f"Track {selected + 1}: {track['name']}", True, WHITE), (25, 16))
-            screen.blit(font.render(f"Time: {elapsed:.2f}s   Best: {records[selected] or '--'}", True, WHITE), (25, 43))
+            screen.blit(font.render(f"Time: {elapsed:.2f}s   Best: {best}", True, WHITE), (25, 43))
             screen.blit(font.render("WASD/arrows drive | R restart | Esc menu", True, WHITE), (760, 25))
 
             if mode == "countdown":
-                number = str(max(1, math.ceil(countdown)))
-                centered_text(screen, big_font, number, HEIGHT // 2, YELLOW)
+                centered_text(screen, big_font, str(max(1, math.ceil(countdown))), HEIGHT // 2, YELLOW)
             elif mode == "racing":
                 centered_text(screen, font, "GO!", 35, YELLOW)
             elif mode == "finished":

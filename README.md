@@ -30,10 +30,14 @@ Once your bash script is running,
 1. Navigate to the port tab and switch the `port 6080` visibility to `public`
 2. Open the `port 6080` exposed url in a seperate tab or click it directly from the port tab
 3. If the GUI has not started automatically, click `vnc.html` or `vnc_auto.html`
-4. Once your GUI loads, go back to your codespace, open a new terminal instance and run your python script
+4. Once your GUI loads, run the Python script with the virtual display and runtime directory configured:
 
 ```bash
-python3 your_script.py
+export DISPLAY=:1
+export XDG_RUNTIME_DIR="/tmp/runtime-${UID}"
+mkdir -p "$XDG_RUNTIME_DIR"
+chmod 700 "$XDG_RUNTIME_DIR"
+python3 game.py
 ```
 
 All should be running fine. Once your python file is running, check the gui tab to see you code output

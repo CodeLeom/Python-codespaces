@@ -8,6 +8,9 @@ sudo apt-get install -y xvfb x11vnc fluxbox websockify novnc
 echo "Starting virtual display..."
 Xvfb :1 -screen 0 1024x768x24 &
 export DISPLAY=:1
+export XDG_RUNTIME_DIR="/tmp/runtime-${UID}"
+mkdir -p "$XDG_RUNTIME_DIR"
+chmod 700 "$XDG_RUNTIME_DIR"
 fluxbox &
 
 echo "Starting VNC server..."

@@ -1,3 +1,9 @@
+import os
+
+# SDL needs a private runtime directory when running in Codespaces.
+runtime_dir = os.environ.setdefault("XDG_RUNTIME_DIR", f"/tmp/runtime-{os.getuid()}")
+os.makedirs(runtime_dir, mode=0o700, exist_ok=True)
+
 import pygame
 from pygame import draw, display
 

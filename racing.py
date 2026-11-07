@@ -5,7 +5,7 @@ import time
 import pygame
 
 
-WIDTH, HEIGHT = 900, 600
+WIDTH, HEIGHT = 800, 600
 FPS = 60
 PLAYER_SPEED = 260
 COIN_COUNT = 15

@@ -48,15 +48,71 @@ class CoinRush:
     def reset(self):
         self.__init__()
 
-    def update(self, dt):
+    def get_state(self):
+        player_x = self.player.x / WIDTH
+        player_y = self.player.y / HEIGHT
+
+        finish_x = self.finish.x / WIDTH
+        finish_y = self.finish.y / HEIGHT
+
+        if self.coins:
+            nearest_coin = min(
+                self.coins,
+                key=lambda coin: self.player.center.distance_to(coin.center),
+            )
+
+            coin_x = nearest_coin.centerx / WIDTH
+            coin_y = nearest_coin.centery / HEIGHT
+        else:
+            coin_x = 0
+            coin_y = 0
+
+        coins_remaining = len(self.coins) / COIN_COUNT
+
+        return [
+            player_x,
+            player_y,
+            coin_x,
+            coin_y,
+            finish_x,
+            finish_y,
+            coins_remaining,
+        ]
+
+    def get_direction_from_action(self, action):
+        """
+    Convert an action number into a movement direction.
+
+    Actions:
+        0 = no movement
+        1 = up
+        2 = down
+        3 = left
+        4 = right
+        """
+        directions = {
+            0: pygame.Vector2(0, 0),   # Stay still
+            1: pygame.Vector2(0, -1),  # Move upward
+            2: pygame.Vector2(0, 1),   # Move downward
+            3: pygame.Vector2(-1, 0),  # Move left
+            4: pygame.Vector2(1, 0),   # Move right
+        }
+
+        return directions.get(action, pygame.Vector2(0, 0))  # Default to no movement
+
+    def update(self, dt, action=None):
         if self.finished:
             return
-
-        keys = pygame.key.get_pressed()
-        direction = pygame.Vector2(
-            keys[pygame.K_d] - keys[pygame.K_a],
-            keys[pygame.K_s] - keys[pygame.K_w],
-        )
+        if action is None:
+            # Normal gameplay
+            keys = pygame.key.get_pressed()
+            direction = pygame.Vector2(
+                keys[pygame.K_d] - keys[pygame.K_a],
+                keys[pygame.K_s] - keys[pygame.K_w],
+            )
+        else:
+            direction = self.get_direction_from_action(action)
+        
         if direction.length_squared():
             direction = direction.normalize()
 
@@ -69,6 +125,38 @@ class CoinRush:
         if not self.coins and self.player.colliderect(self.finish):
             self.finish_time = time.perf_counter() - self.start_time
             self.finished = True
+
+    def step(self, action):
+        """
+        Advance the game by one fixed simulation step.
+
+        The AI gives us an action number. We update the game,
+        then return information about what happened.
+        """
+        # A fixed timestep makes training predictable.
+        dt = 1 / FPS
+
+        coins_before = len(self.coins)
+
+        # Send the action to the movement system.
+        self.update(dt, action)
+
+        coins_collected = coins_before - len(self.coins)
+
+        # Small penalty for taking time.
+        reward = -0.01
+
+        # Reward the AI for collecting coins.
+        reward += coins_collected * 10
+
+        # Check whether the player finished.
+        done = False
+
+        if not self.coins and self.player.colliderect(self.finish):
+            reward += 100
+            done = True
+
+        return self.get_state(), reward, done
 
     def draw(self, screen, font, big_font):
         screen.fill(BACKGROUND)

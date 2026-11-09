@@ -4,6 +4,7 @@ import time
 
 import pygame
 
+from human_actions import get_keyboard_action
 
 WIDTH, HEIGHT = 800, 600
 FPS = 60
@@ -100,32 +101,6 @@ class CoinRush:
 
         return directions.get(action, pygame.Vector2(0, 0))  # Default to no movement
 
-    def update(self, dt, action=None):
-        if self.finished:
-            return
-        if action is None:
-            # Normal gameplay
-            keys = pygame.key.get_pressed()
-            direction = pygame.Vector2(
-                keys[pygame.K_d] - keys[pygame.K_a],
-                keys[pygame.K_s] - keys[pygame.K_w],
-            )
-        else:
-            direction = self.get_direction_from_action(action)
-        
-        if direction.length_squared():
-            direction = direction.normalize()
-
-        self.player.x += round(direction.x * PLAYER_SPEED * dt)
-        self.player.y += round(direction.y * PLAYER_SPEED * dt)
-        self.player.clamp_ip(pygame.Rect(0, 0, WIDTH, HEIGHT))
-
-        self.coins = [coin for coin in self.coins if not self.player.colliderect(coin)]
-
-        if not self.coins and self.player.colliderect(self.finish):
-            self.finish_time = time.perf_counter() - self.start_time
-            self.finished = True
-
     def step(self, action):
         """
         Advance the game by one fixed simulation step.
@@ -157,6 +132,27 @@ class CoinRush:
             done = True
 
         return self.get_state(), reward, done
+
+    def update(self, dt, action=None):
+        if self.finished:
+            return
+        if action is None:
+            direction = pygame.Vector2(0, 0)
+        else:
+            direction = self.get_direction_from_action(action)
+        
+        if direction.length_squared():
+            direction = direction.normalize()
+
+        self.player.x += round(direction.x * PLAYER_SPEED * dt)
+        self.player.y += round(direction.y * PLAYER_SPEED * dt)
+        self.player.clamp_ip(pygame.Rect(0, 0, WIDTH, HEIGHT))
+
+        self.coins = [coin for coin in self.coins if not self.player.colliderect(coin)]
+
+        if not self.coins and self.player.colliderect(self.finish):
+            self.finish_time = time.perf_counter() - self.start_time
+            self.finished = True
 
     def draw(self, screen, font, big_font):
         screen.fill(BACKGROUND)
@@ -221,7 +217,8 @@ def main():
                 if event.key == pygame.K_r:
                     game.reset()
 
-        game.update(dt)
+        action = get_keyboard_action()
+        game.update(dt, action)
         game.draw(screen, font, big_font)
         pygame.display.flip()
 

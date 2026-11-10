@@ -12,7 +12,7 @@ FPS = 60
 PLAYER_SPEED = 260
 COIN_COUNT = 15
 
-MAX_STEPS = 3000
+MAX_STEPS = 1000
 
 BACKGROUND = (35, 40, 50)
 PLAYER_COLOR = (70, 170, 255)
@@ -58,8 +58,8 @@ class CoinRush:
         player_x = self.player.centerx / WIDTH
         player_y = self.player.centery / HEIGHT
 
-        finish_dx = (self.finish.centerx - player_x) / WIDTH
-        finish_dy = (self.finish.centery - player_y) / HEIGHT
+        finish_dx = (self.finish.centerx - self.player.centerx) / WIDTH
+        finish_dy = (self.finish.centery - self.player.centery) / HEIGHT
 
         if self.coins:
             nearest_coin = min(
@@ -69,8 +69,8 @@ class CoinRush:
                 ),
             )
 
-            coin_dx = (nearest_coin.centerx - player_x) / WIDTH
-            coin_dy = (nearest_coin.centery - player_y) / HEIGHT
+            coin_dx = (nearest_coin.centerx - self.player.centerx) / WIDTH
+            coin_dy = (nearest_coin.centery - self.player.centery) / HEIGHT
         else:
             coin_dx = 0
             coin_dy = 0

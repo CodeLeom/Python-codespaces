@@ -24,7 +24,7 @@ def main():
 
         state = next_state
         step_number += 1
-
+        """
         if game.step_count % 100 == 0:
             print(
                 f"Step: {game.step_count}, "
@@ -33,11 +33,13 @@ def main():
                 f"Coins left: {len(game.coins)} "
                 f"Done: {done}"
             )
-
+        """
     print("Episode finished.")
     print(f"Total steps: {game.step_count}")
     print(f"Coins remaining: {len(game.coins)}")
     print(f"Total reward: {game.total_reward:.3f}")
+    for x in state:
+        print(f"{x:.3f}")
     print(f"Finished: {game.finished}")
 
     pygame.quit()

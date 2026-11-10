@@ -1,4 +1,6 @@
 from game import CoinRush
 
 game = CoinRush()
-print(game.get_state())
+state = game.get_state()
+for x in state:
+    print(f"{x:.3f}")

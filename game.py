@@ -55,11 +55,11 @@ class CoinRush:
         self.__init__()
 
     def get_state(self):
-        player_x = self.player.x / WIDTH
-        player_y = self.player.y / HEIGHT
+        player_x = self.player.centerx / WIDTH
+        player_y = self.player.centery / HEIGHT
 
-        finish_x = self.finish.x / WIDTH
-        finish_y = self.finish.y / HEIGHT
+        finish_dx = (self.finish.centerx - player_x) / WIDTH
+        finish_dy = (self.finish.centery - player_y) / HEIGHT
 
         if self.coins:
             nearest_coin = min(
@@ -69,21 +69,21 @@ class CoinRush:
                 ),
             )
 
-            coin_x = nearest_coin.centerx / WIDTH
-            coin_y = nearest_coin.centery / HEIGHT
+            coin_dx = (nearest_coin.centerx - player_x) / WIDTH
+            coin_dy = (nearest_coin.centery - player_y) / HEIGHT
         else:
-            coin_x = 0
-            coin_y = 0
+            coin_dx = 0
+            coin_dy = 0
 
         coins_remaining = len(self.coins) / COIN_COUNT
 
         return [
             player_x,
             player_y,
-            coin_x,
-            coin_y,
-            finish_x,
-            finish_y,
+            coin_dx,
+            coin_dy,
+            finish_dx,
+            finish_dy,
             coins_remaining,
         ]
 

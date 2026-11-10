@@ -12,6 +12,8 @@ FPS = 60
 PLAYER_SPEED = 260
 COIN_COUNT = 15
 
+MAX_STEPS = 3000
+
 BACKGROUND = (35, 40, 50)
 PLAYER_COLOR = (70, 170, 255)
 COIN_COLOR = (245, 205, 45)
@@ -26,6 +28,7 @@ class CoinRush:
         self.finish = pygame.Rect(WIDTH - 100, HEIGHT // 2 - 55, 55, 110)
         self.coins = self.create_coins()
         self.start_time = time.perf_counter()
+        self.step_count = 0
         self.total_reward = 0.0
         self.finish_time = None
         self.finished = False
@@ -139,10 +142,15 @@ class CoinRush:
         # Check whether the player finished.
         done = False
 
+        if self.step_count >= MAX_STEPS - 1:
+            reward -= 10
+            done = True
+
         if not self.coins and self.player.colliderect(self.finish):
             reward += 100
             done = True
-            
+
+        self.step_count += 1
         self.total_reward += reward
         return self.get_state(), reward, done
 

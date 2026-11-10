@@ -2,9 +2,10 @@ import pygame
 
 from ai_actions import choose_random_action
 from game import CoinRush
+from game import MAX_STEPS
 
 """
-Min reward: -50
+Min reward: MAX_STEPS * -0.01 - 10 (Max steps reached)
 Max reward: 250 - time ???
 """
 
@@ -17,16 +18,16 @@ def main():
     done = False
     step_number = 0
 
-    while not done and step_number < 5000:
+    while not done and game.step_count < MAX_STEPS:
         action = choose_random_action(state)
         next_state, reward, done = game.step(action)
 
         state = next_state
         step_number += 1
 
-        if step_number % 100 == 0:
+        if game.step_count % 100 == 0:
             print(
-                f"Step: {step_number}, "
+                f"Step: {game.step_count}, "
                 f"Action: {action}, "
                 f"Reward: {reward:.2f}, "
                 f"Coins left: {len(game.coins)} "
@@ -34,7 +35,7 @@ def main():
             )
 
     print("Episode finished.")
-    print(f"Total steps: {step_number}")
+    print(f"Total steps: {game.step_count}")
     print(f"Coins remaining: {len(game.coins)}")
     print(f"Total reward: {game.total_reward:.3f}")
     print(f"Finished: {game.finished}")

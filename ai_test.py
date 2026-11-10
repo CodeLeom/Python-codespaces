@@ -11,6 +11,7 @@ Min reward: MAX_STEPS * -0.01 - 10 (Max steps reached)
 Max reward: 250 - time ???
 """
 
+EPISODES = 10
 RESULTS_FILE = "ai_results.csv"
 
 def save_episode_result(steps, finished, total_reward):
@@ -27,40 +28,30 @@ def save_episode_result(steps, finished, total_reward):
 
 def main():
     pygame.init()
+    for episode in range(EPISODES):
+        game = CoinRush()
+        state = game.get_state()
 
-    game = CoinRush()
-    state = game.get_state()
+        done = False
 
-    done = False
-    step_number = 0
+        while not done and game.step_count < MAX_STEPS:
+            action = choose_simple_action(state)
+            next_state, reward, done = game.step(action)
 
-    while not done and game.step_count < MAX_STEPS:
-        action = choose_simple_action(state)
-        next_state, reward, done = game.step(action)
+            state = next_state
 
-        state = next_state
-        step_number += 1
+        save_episode_result(
+            steps=game.step_count,
+            finished=game.finished,
+            total_reward=game.total_reward
+        )
 
-        if game.step_count % 25 == 0:
-            print(
-                f"Step: {game.step_count}, "
-                f"Action: {action}, "
-                f"Reward: {reward:.2f}, "
-                f"Coins left: {len(game.coins)} "
-                f"Done: {done}"
-            )
-
-    print("Episode finished.")
-    print(f"Total steps: {game.step_count}")
-    print(f"Coins remaining: {len(game.coins)}")
-    print(f"Total reward: {game.total_reward:.3f}")
-    print(f"Finished: {game.finished}")
-
-    save_episode_result(
-        steps=game.step_count,
-        finished=game.finished,
-        total_reward=game.total_reward
-    )
+        print(
+            f"Episode {episode + 1}: "
+            f"Total steps: {game.step_count}, "
+            f"Total reward: {game.total_reward:.3f}, "
+            f"Finished: {game.finished}, "
+        )
 
     pygame.quit()
 

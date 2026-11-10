@@ -48,3 +48,7 @@ All should be running fine. Once your python file is running, check the gui tab 
 - ALSA audio warnings can be ignored — Codespaces doesn’t provide sound output.
 - Press ESC or close the window in the GUI to exit your app cleanly.
 - You can adapt this setup for any GUI toolkit, not just Pygame.
+
+
+chmod +x VM/start-gui.sh
+./VM/start-gui.sh

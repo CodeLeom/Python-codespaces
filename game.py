@@ -5,6 +5,7 @@ import time
 import pygame
 
 from human_actions import get_keyboard_action
+from ai_actions import choose_random_action
 
 WIDTH, HEIGHT = 800, 600
 FPS = 60
@@ -25,6 +26,7 @@ class CoinRush:
         self.finish = pygame.Rect(WIDTH - 100, HEIGHT // 2 - 55, 55, 110)
         self.coins = self.create_coins()
         self.start_time = time.perf_counter()
+        self.total_reward = 0.0
         self.finish_time = None
         self.finished = False
 
@@ -59,7 +61,9 @@ class CoinRush:
         if self.coins:
             nearest_coin = min(
                 self.coins,
-                key=lambda coin: self.player.center.distance_to(coin.center),
+                key=lambda coin: pygame.Vector2(self.player.center).distance_to(
+                    coin.center
+                ),
             )
 
             coin_x = nearest_coin.centerx / WIDTH
@@ -90,13 +94,21 @@ class CoinRush:
         2 = down
         3 = left
         4 = right
-        """
+        5 = up-left
+        6 = up-right
+        7 = down-left
+        8 = down-right
+    """
         directions = {
-            0: pygame.Vector2(0, 0),   # Stay still
-            1: pygame.Vector2(0, -1),  # Move upward
-            2: pygame.Vector2(0, 1),   # Move downward
-            3: pygame.Vector2(-1, 0),  # Move left
-            4: pygame.Vector2(1, 0),   # Move right
+            0: pygame.Vector2(0, 0),
+            1: pygame.Vector2(0, -1),
+            2: pygame.Vector2(0, 1),
+            3: pygame.Vector2(-1, 0),
+            4: pygame.Vector2(1, 0),
+            5: pygame.Vector2(-1, -1),
+            6: pygame.Vector2(1, -1),
+            7: pygame.Vector2(-1, 1),
+            8: pygame.Vector2(1, 1),
         }
 
         return directions.get(action, pygame.Vector2(0, 0))  # Default to no movement
@@ -130,7 +142,8 @@ class CoinRush:
         if not self.coins and self.player.colliderect(self.finish):
             reward += 100
             done = True
-
+            
+        self.total_reward += reward
         return self.get_state(), reward, done
 
     def update(self, dt, action=None):
@@ -217,7 +230,9 @@ def main():
                 if event.key == pygame.K_r:
                     game.reset()
 
-        action = get_keyboard_action()
+        state = game.get_state()
+        action = get_keyboard_action() # Use keyboard input
+        # action = choose_random_action(state) # Use ai input
         game.update(dt, action)
         game.draw(screen, font, big_font)
         pygame.display.flip()
